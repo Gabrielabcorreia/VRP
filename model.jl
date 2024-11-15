@@ -1,6 +1,7 @@
 using GLPK
 using JuMP
 using Plots
+using Test
 
 function solve_vrp(instance)
     model = Model(GLPK.Optimizer)
