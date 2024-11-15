@@ -1,3 +1,5 @@
+using Test
+
 struct VRP_instances
     n::Int64
     K::Int64
@@ -29,17 +31,17 @@ function calculate_costs(coords)
     costs = zeros(Float64, num_points, num_points)
     for i in 1:num_points
         for j in 1:num_points
-            costs[i, j] = round(sqrt((coords[i][1] - coords[j][1])^2 + (coords[i][2] - coords[j][2])^2), digits=1)
+            costs[i, j] = sqrt((coords[i][1] - coords[j][1])^2 + (coords[i][2] - coords[j][2])^2)
         end
     end
     return costs
 end
 
 function test_instance(instance, n1, Q1, k1, coords1::Vector{Tuple{Int64, Int64}})
-    @assert instance.n == n1 "Erro: Number of customers wrong"
-    @assert instance.Q == Q1 "Erro: Capacity wrong"
-    @assert instance.K == k1 "Erro: Number of veichles wrong"
-    @assert instance.coords == coords1 "Erro: Coords wrong"
+    @test instance.n == n1 || throw(AssertionError("Erro: Number of customers wrong"))
+    @test instance.Q == Q1 || throw(AssertionError("Erro: Capacity wrong"))
+    @test instance.K == k1 || throw(AssertionError("Erro: Number of vehicles wrong"))
+    @test instance.coords == coords1 || throw(AssertionError("Erro: Coords wrong"))
 end
 
 function open_archive(file::String)
@@ -70,5 +72,4 @@ function open_archive(file::String)
     c1 = calculate_costs(coords1)
 
     return coords1, VRP_instances(n1, k1, Q1, coords1, d1, c1)
-
 end
