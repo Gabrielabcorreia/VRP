@@ -1,64 +1,87 @@
 using GLPK
 using JuMP
-using Plots
-using Test
+
+struct Results
+    x::Matrix{Float64}
+end
 
 function solve_vrp(instance)
     model = Model(GLPK.Optimizer)
 
     @variable(model, x[1:instance.n, 1:instance.n], Bin)
-    @variable(model, u[1:instance.n], Int)
+    @variable(model, u[2:instance.n], Int)
 
-    @objective(model, Min, sum(instance.c[i, j] * x[i, j] for i in 1:instance.n, j in 1:instance.n if i != j))
+    @objective(model, Min, sum(instance.c[i, j] * x[i, j] for i in 1:instance.n, j in 1:instance.n))
 
-    @constraint(model, sum(x[i, j] for i in 2:instance.n, j in 1:instance.n) == 1)
+    valid_pairs = [(i, j) for i in 2:instance.n, j in 2:instance.n if i != j]
 
-    for h in 2:instance.n
-        @constraint(model, sum(x[i, h] for i in 1:instance.n if i != h) == sum(x[h, j] for j in 1:instance.n if j != h))
+    @constraints(model, begin
+        [j in 2:instance.n], sum(x[i, j] for i in 1:instance.n if i != j) == 1
+        [i in 2:instance.n], sum(x[i, j] for j in 1:instance.n if i != j) == 1
+
+        sum(x[1, j] for j in 2:instance.n) == instance.K
+        sum(x[i, 1] for i in 2:instance.n) == instance.K
+    end)
+
+    for (i, j) in valid_pairs
+        @constraint(model, u[j] ≥ u[i] + instance.d[j] - (instance.Q + 1) * (1 - x[i, j]))
     end
 
-    @constraint(model, sum(x[1, j] for j in 1:instance.n) == instance.K)
-
-    for i in 2:instance.n, j in 2:instance.n
-        if i != j
-            @constraint(model, u[j] ≥ u[i] + instance.d[i] - (instance.Q + 1) * (1 - x[i, j]))
-        end
-    end
+    @constraint(model, [i in 2:instance.n], u[i] ≥ instance.d[i])
+    @constraint(model, [i in 2:instance.n], u[i] ≤ instance.Q)
 
     optimize!(model)
 
     if termination_status(model) == MOI.OPTIMAL
-        routes = []
-        visited = Set()
-        for k in 1:instance.K
-            route = []
-            current_node = 1
-            while true
-                push!(route, current_node)
-                visited_node = findfirst(x[current_node, :] .> 0.5)
-                if visited_node === nothing || visited_node in visited
-                    break
-                end
-                current_node = visited_node
-                push!(visited, visited_node)
-            end
-            push!(routes, route)
-        end
-
-        for (i, route) in enumerate(routes)
-            println("Route #$i: ", join(route, " "))
-        end
-
-        total_cost = objective_value(model)
-        println("Cost ", total_cost)
-
-        plot_routes(instance, routes)
-        return routes, total_cost
+        total_distance = objective_value(model)
+        println("Costs: $total_distance")
+        return Results(value.(x))
     else
-        println("No optimal solution has found")
+        println("No optimal solution found")
+        return nothing
+    end
+end
+
+
+function show_results(instance, model)
+    x = value.(model[:x])
+    routes = []
+
+    for k in 1:instance.K
+        route = []
+        current_node = 1
+        current_capacity = 0
+        visited = falses(instance.n)
+        push!(route, current_node)
+        visited[current_node] = true
+
+        while length(route) < instance.n + 1 
+            for i in 1:instance.n
+                for j in 1:instance.n
+                    if i != j && !visited[j] && x[i, j] >= 0.5
+                        push!(route, j)
+                        visited[j] = true
+                        current_capacity += instance.d[j]
+                        break  
+                    end
+                end
+            end
+        end
+
+        push!(routes, route) 
     end
 
+    for (i, route) in enumerate(routes)
+        println("Route #$i: ", join(route, " "))
+    end
+
+    total_cost = objective_value(model)
+    println("Cost: $total_cost")
+
+    save_archive(routes, total_cost)
+    plot_routes(instance, routes)
 end
+
 
 function plot_routes(instance, routes)
     plot()
@@ -72,14 +95,12 @@ function plot_routes(instance, routes)
     title!("VRP Solution")
     xlabel!("X")
     ylabel!("Y")
-    grid!(true)
 end
 
 function save_archive(routes, total_cost)
-
     open("Results", "w") do io
         for (i, route) in enumerate(routes)
-            println(io, "Route $(i): ", join(route, " -> "))
+            println(io, "Route $(i): ", join(route, " "))
         end
         println(io, "Costs: ", total_cost)
     end
@@ -87,5 +108,6 @@ end
 
 function verify_costs(total_cost, costs)
 
-    @test total_cost == costs || throw(AssertionError("Erro: Costs wrong"))
+   @test total_cost == costs || throw(AssertionError("Erro: Costs wrong"))
+
 end

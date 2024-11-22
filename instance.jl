@@ -9,6 +9,30 @@ struct VRP_instances
     c::Matrix{Float64}
 end
 
+struct Instance     # Test with a smaller instance 
+    
+    n::Int
+    K::Int
+    Q::Int
+    d::Vector{Int}
+    c::Matrix{Float64}
+end
+
+function create_test_instance()
+    return Instance(
+        5,
+        2,
+        15,
+        [0, 5, 10, 8, 7],
+        [0 10 15 20 25;
+         10 0 35 25 30;
+         15 35 0 30 20;
+         20 25 30 0 15;
+         25 30 20 15 0]
+    )
+
+end
+
 function open_demands(file::String)
     d1 = Int64[]
     open(file, "r") do io
@@ -19,9 +43,18 @@ function open_demands(file::String)
             elseif occursin("DEPOT_SECTION", line)
                 break
             elseif in_demand_section
-                push!(d1, parse(Int, split(line)[2]))
+                parts = split(line)
+                if length(parts) >= 2
+                    push!(d1, parse(Int, parts[2]))
+                else
+                    throw(ArgumentError("Invalid Format"))
+                end
             end
         end
+    end
+
+    if isempty(d1)
+        throw(ArgumentError("Seccion not found"))
     end
     return d1
 end
@@ -38,10 +71,10 @@ function calculate_costs(coords)
 end
 
 function test_instance(instance, n1, Q1, k1, coords1::Vector{Tuple{Int64, Int64}})
-    @test instance.n == n1 || throw(AssertionError("Erro: Number of customers wrong"))
-    @test instance.Q == Q1 || throw(AssertionError("Erro: Capacity wrong"))
-    @test instance.K == k1 || throw(AssertionError("Erro: Number of vehicles wrong"))
-    @test instance.coords == coords1 || throw(AssertionError("Erro: Coords wrong"))
+    @test instance.n == n1
+    @test instance.Q == Q1
+    @test instance.K == k1
+    @test instance.coords == coords1
 end
 
 function open_archive(file::String)
@@ -61,9 +94,17 @@ function open_archive(file::String)
                 break
             elseif in_coord_section
                 coords_parts = split(line)
-                push!(coords1, (parse(Int, coords_parts[2]), parse(Int, coords_parts[3])))
+                if length(coords_parts) >= 3
+                    push!(coords1, (parse(Int, coords_parts[2]), parse(Int, coords_parts[3])))
+                else
+                    throw(ArgumentError("Invalid Format"))
+                end
             end
         end
+    end
+
+    if n1 == 0 || Q1 == 0 || isempty(coords1)
+        throw(ArgumentError("File does not contain instructions or incorrect format"))
     end
 
     d1 = open_demands(file)

@@ -1,0 +1,8 @@
+Route 1: 1 Any[17, 25, 27, 28, 31]
+Route 2: 15 Any[1]
+Route 3: 17 Any[1]
+Route 4: 25 Any[15]
+Route 5: 27 Any[1]
+Route 6: 28 Any[1]
+Route 7: 31 Any[1]
+Costs: 233.34791898383637
