@@ -1,7 +1,7 @@
 include("instance.jl")
 include("model.jl")
 
-export open_archive, solve_vrp, test_instance
+export open_archive, build_vrp_model, solve_vrp, show_results, create_test_instance
 
 file = "C:/Users/budun/OneDrive/Área de Trabalho/----/Estudos/GEEOC/PIBITI/Códigos estudos/Projeto 3/A/A-n32-k5.vrp"
 file2 = "C:/Users/budun/OneDrive/Área de Trabalho/----/Estudos/GEEOC/PIBITI/Códigos estudos/Projeto 3/A/A-n33-k5.vrp"
@@ -13,6 +13,6 @@ test_instance(instance, 32, 100, 5, coords)
 test_instance(instance1, 33, 100, 5, coords1)
 test_instance(intance2, 62, 100, 8, coords1)
 
-routes, total_cost = solve_vrp(instance)
-routes1, total_cost1 = solve_vrp(instance1)
-routes2, total_cost2 = solve_vrp(instance2)
+results = solve_vrp(instance)
+results1 = solve_vrp(instance1)
+results2 = solve_vrp(instance2)

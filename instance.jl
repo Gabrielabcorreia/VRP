@@ -4,34 +4,26 @@ struct VRP_instances
     n::Int64
     K::Int64
     Q::Int64
-    coords::Vector{Tuple{Int64, Int64}}
+    coords::Vector{Tuple{Float64, Float64}}
     d::Vector{Int64}
     c::Matrix{Float64}
 end
 
-struct Instance     # Test with a smaller instance 
-    
-    n::Int
-    K::Int
-    Q::Int
-    d::Vector{Int}
-    c::Matrix{Float64}
-end
-
 function create_test_instance()
-    return Instance(
-        5,
-        2,
-        15,
-        [0, 5, 10, 8, 7],
-        [0 10 15 20 25;
-         10 0 35 25 30;
-         15 35 0 30 20;
-         20 25 30 0 15;
-         25 30 20 15 0]
+    return VRP_instances(
+        5,                            
+        2,                            
+        15,                          
+        [(0.0, 0.0), (1.0, 3.0), (4.0, 4.0), (6.0, 2.0), (5.0, 0.0)],
+        [0, 5, 10, 8, 7],             
+        [0.0 10.0 15.0 20.0 25.0;     
+         10.0 0.0 35.0 25.0 30.0;
+         15.0 35.0 0.0 30.0 20.0;
+         20.0 25.0 30.0 0.0 15.0;
+         25.0 30.0 20.0 15.0 0.0]
     )
-
 end
+
 
 function open_demands(file::String)
     d1 = Int64[]

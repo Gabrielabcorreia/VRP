@@ -1,5 +1,6 @@
 using GLPK
 using JuMP
+using Plots
 
 struct Results
     x::Matrix{Float64}
@@ -42,40 +43,45 @@ function solve_vrp(instance)
     end
 end
 
-
-function show_results(instance, model)
-    x = value.(model[:x])
+function show_results(instance, results::Results)
+    x = results.x
     routes = []
+    total_cost = 0
+
+    visited = falses(instance.n)
 
     for k in 1:instance.K
         route = []
         current_node = 1
-        current_capacity = 0
-        visited = falses(instance.n)
         push!(route, current_node)
-        visited[current_node] = true
 
-        while length(route) < instance.n + 1 
-            for i in 1:instance.n
-                for j in 1:instance.n
-                    if i != j && !visited[j] && x[i, j] >= 0.5
-                        push!(route, j)
-                        visited[j] = true
-                        current_capacity += instance.d[j]
-                        break  
-                    end
+        current_load = 0
+        while true
+            found_next = false
+            for j in 2:instance.n 
+                if x[current_node, j] >= 0.5 && !visited[j] && (current_load + instance.d[j] <= instance.Q)
+                    push!(route, j)
+                    visited[j] = true
+                    current_load += instance.d[j]
+                    current_node = j
+                    found_next = true
+                    break
                 end
+            end
+            if !found_next
+                push!(route, 1)
+                break
             end
         end
 
-        push!(routes, route) 
+        push!(routes, route)
     end
 
     for (i, route) in enumerate(routes)
         println("Route #$i: ", join(route, " "))
     end
 
-    total_cost = objective_value(model)
+    total_cost = sum(instance.c[i, j] * x[i, j] for i in 1:instance.n, j in 1:instance.n)
     println("Cost: $total_cost")
 
     save_archive(routes, total_cost)
@@ -107,7 +113,5 @@ function save_archive(routes, total_cost)
 end
 
 function verify_costs(total_cost, costs)
-
-   @test total_cost == costs || throw(AssertionError("Erro: Costs wrong"))
-
+    @test total_cost == costs || throw(AssertionError("Erro: Costs wrong"))
 end
